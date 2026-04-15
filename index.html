@@ -1,0 +1,235 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.c{padding:1rem 0;}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}
+.toolbar select,.toolbar input[type="text"]{font-size:13px;padding:5px 8px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);height:32px;}
+.toolbar button{font-size:13px;padding:5px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;height:32px;touch-action:manipulation;}
+.toolbar button:hover{background:var(--color-background-secondary);}
+.toolbar button.danger{border-color:#E24B4A;color:#A32D2D;}
+.lbl{font-size:12px;color:var(--color-text-secondary);}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tg{position:relative;}
+.hrow{display:flex;margin-left:72px;}
+.hrow2{display:flex;margin-left:72px;margin-bottom:6px;}
+.ycell{text-align:center;font-size:10px;color:var(--color-text-secondary);border-left:0.5px solid var(--color-border-tertiary);padding:1px 0;}
+.ysep{text-align:center;font-size:11px;font-weight:500;color:var(--color-text-primary);border-left:1.5px solid var(--color-border-secondary);padding-bottom:2px;}
+.lane{display:flex;align-items:stretch;margin-bottom:5px;}
+.ll{width:72px;flex-shrink:0;font-size:13px;font-weight:500;color:var(--color-text-primary);display:flex;align-items:center;padding-right:8px;}
+.lb{flex:1;position:relative;height:48px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);}
+.bar{position:absolute;top:5px;height:38px;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-size:12px;font-weight:500;cursor:grab;user-select:none;touch-action:none;}
+.bar:active{cursor:grabbing;}
+.bar .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+.bar .dx{margin-left:5px;flex-shrink:0;font-size:15px;opacity:0.55;cursor:pointer;display:none;line-height:1;}
+.bar:hover .dx{display:inline;}
+.rh{position:absolute;right:0;top:0;width:12px;height:100%;cursor:ew-resize;touch-action:none;border-radius:0 6px 6px 0;display:flex;align-items:center;justify-content:center;}
+.rh::after{content:'⋮';font-size:11px;opacity:0.5;color:inherit;}
+.csw{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0;touch-action:manipulation;}
+.csw.sel{outline:2px solid var(--color-text-primary);outline-offset:1px;}
+.tip{font-size:12px;color:var(--color-text-secondary);margin-top:0.75rem;line-height:1.6;}
+</style>
+<div class="c">
+<h2 class="sr-only">Seasonal life timeline planner for Liam, Ian, and Kevin, 2026–2033</h2>
+<div class="toolbar">
+  <span class="lbl">Lane:</span>
+  <select id="lsel"></select>
+  <input type="text" id="blbl" placeholder="Label" style="width:130px;"/>
+  <select id="syr"></select>
+  <select id="eyr"></select>
+  <div id="cpick" style="display:flex;gap:5px;align-items:center;"></div>
+  <button id="addbtn">+ Add</button>
+  <button class="danger" id="clrbtn">Clear</button>
+</div>
+<div class="tw">
+  <div class="tg" id="tg">
+    <div class="hrow" id="yr-row"></div>
+    <div class="hrow2" id="seas-row"></div>
+    <div id="lc"></div>
+  </div>
+</div>
+<p class="tip">Touch &amp; drag a block to move it · Drag the right edge ⋮ to resize · Tap × to delete</p>
+</div>
+<script>
+const SEASONS=[
+  {y:2026,s:'Sp'},{y:2026,s:'Su'},{y:2026,s:'Fa'},{y:2026,s:'Wi'},
+  {y:2027,s:'Sp'},{y:2027,s:'Su'},{y:2027,s:'Fa'},{y:2027,s:'Wi'},
+  {y:2028,s:'Sp'},{y:2028,s:'Su'},{y:2028,s:'Fa'},{y:2028,s:'Wi'},
+  {y:2029,s:'Sp'},{y:2029,s:'Su'},{y:2029,s:'Fa'},{y:2029,s:'Wi'},
+  {y:2030,s:'Sp'},{y:2030,s:'Su'},{y:2030,s:'Fa'},{y:2030,s:'Wi'},
+  {y:2031,s:'Sp'},{y:2031,s:'Su'},{y:2031,s:'Fa'},{y:2031,s:'Wi'},
+  {y:2032,s:'Sp'},{y:2032,s:'Su'},{y:2032,s:'Fa'},{y:2032,s:'Wi'},
+  {y:2033,s:'Sp'},{y:2033,s:'Su'},{y:2033,s:'Fa'},{y:2033,s:'Wi'},
+];
+const N=SEASONS.length;
+const LANES=['Liam','Ian','Kevin'];
+const COLORS=[
+  {n:'blue',f:'#B5D4F4',t:'#0C447C',b:'#85B7EB'},
+  {n:'teal',f:'#9FE1CB',t:'#085041',b:'#5DCAA5'},
+  {n:'purple',f:'#CECBF6',t:'#3C3489',b:'#AFA9EC'},
+  {n:'amber',f:'#FAC775',t:'#633806',b:'#EF9F27'},
+  {n:'coral',f:'#F5C4B3',t:'#712B13',b:'#F0997B'},
+  {n:'green',f:'#C0DD97',t:'#27500A',b:'#97C459'},
+  {n:'pink',f:'#F4C0D1',t:'#72243E',b:'#ED93B1'},
+  {n:'gray',f:'#D3D1C7',t:'#444441',b:'#B4B2A9'},
+];
+let bars=[];
+let selColor=COLORS[0];
+let drag=null;
+
+function seasonLabel(si){return SEASONS[si].s+' '+SEASONS[si].y;}
+function siLabel(si){const s=SEASONS[si];return s.s+' '+s.y;}
+
+function buildSelects(){
+  const ls=document.getElementById('lsel');
+  LANES.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;ls.appendChild(o);});
+  const sy=document.getElementById('syr'),ey=document.getElementById('eyr');
+  SEASONS.forEach((s,i)=>{
+    const lbl=s.s+' '+s.y;
+    [sy,ey].forEach(el=>{const o=document.createElement('option');o.value=i;o.textContent=lbl;el.appendChild(o.cloneNode(true));});
+  });
+  sy.value=0; ey.value=7;
+}
+
+function buildColorPicker(){
+  const cp=document.getElementById('cpick');
+  cp.innerHTML='';
+  COLORS.forEach(c=>{
+    const sw=document.createElement('div');
+    sw.className='csw'+(c.n===selColor.n?' sel':'');
+    sw.style.background=c.f;
+    sw.title=c.n;
+    sw.addEventListener('click',()=>{selColor=c;buildColorPicker();});
+    sw.addEventListener('touchend',(e)=>{e.preventDefault();selColor=c;buildColorPicker();});
+    cp.appendChild(sw);
+  });
+}
+
+function buildHeaders(){
+  const yr=document.getElementById('yr-row');
+  const sr=document.getElementById('seas-row');
+  yr.innerHTML=''; sr.innerHTML='';
+  const cellW=(100/N)+'%';
+  let lastY=null;
+  SEASONS.forEach((s,i)=>{
+    const sc=document.createElement('div');
+    sc.className='ycell';
+    sc.style.flex='0 0 '+cellW;
+    sc.textContent=s.s;
+    sr.appendChild(sc);
+    if(s.y!==lastY){
+      const yc=document.createElement('div');
+      yc.className='ysep';
+      const span=SEASONS.filter(x=>x.y===s.y).length;
+      yc.style.flex='0 0 '+(span*100/N)+'%';
+      yc.textContent=s.y;
+      yr.appendChild(yc);
+      lastY=s.y;
+    }
+  });
+}
+
+function getTouch(e){return e.touches?e.touches[0]:e.changedTouches?e.changedTouches[0]:null;}
+
+function attachDrag(barEl,b,bodyEl){
+  function startMove(clientX){
+    drag={bar:b,type:'move',startX:clientX,origS:b.si,origE:b.ei,bodyEl};
+  }
+  function startResize(clientX){
+    drag={bar:b,type:'resize',startX:clientX,origE:b.ei,bodyEl};
+  }
+  const rh=barEl.querySelector('.rh');
+  rh.addEventListener('mousedown',e=>{e.stopPropagation();startResize(e.clientX);});
+  rh.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();const t=getTouch(e);if(t)startResize(t.clientX);},{passive:false});
+  barEl.addEventListener('mousedown',e=>{if(e.target===rh||e.target.classList.contains('dx'))return;startMove(e.clientX);});
+  barEl.addEventListener('touchstart',e=>{if(e.target===rh||e.target.classList.contains('dx'))return;e.preventDefault();const t=getTouch(e);if(t)startMove(t.clientX);},{passive:false});
+}
+
+function applyDrag(clientX){
+  if(!drag)return;
+  const rect=drag.bodyEl.getBoundingClientRect();
+  const dx=clientX-drag.startX;
+  const pct=dx/rect.width;
+  const delta=Math.round(pct*N);
+  const b=drag.bar;
+  if(drag.type==='resize'){
+    const ne=Math.min(Math.max(drag.origE+delta,b.si),N-1);
+    b.ei=ne;
+  } else {
+    const span=drag.origE-drag.origS;
+    const ns=Math.min(Math.max(drag.origS+delta,0),N-1-span);
+    b.si=ns; b.ei=ns+span;
+  }
+  render();
+}
+
+document.addEventListener('mousemove',e=>{if(drag)applyDrag(e.clientX);});
+document.addEventListener('mouseup',()=>{drag=null;});
+document.addEventListener('touchmove',e=>{if(drag){e.preventDefault();const t=getTouch(e);if(t)applyDrag(t.clientX);}},{passive:false});
+document.addEventListener('touchend',()=>{drag=null;});
+
+function render(){
+  const lc=document.getElementById('lc');
+  lc.innerHTML='';
+  LANES.forEach(lane=>{
+    const laneEl=document.createElement('div');
+    laneEl.className='lane';
+    const ll=document.createElement('div');
+    ll.className='ll';
+    ll.textContent=lane;
+    laneEl.appendChild(ll);
+    const body=document.createElement('div');
+    body.className='lb';
+    bars.filter(b=>b.lane===lane).forEach(b=>{
+      const lp=(b.si/N)*100;
+      const wp=((b.ei-b.si+1)/N)*100;
+      const barEl=document.createElement('div');
+      barEl.className='bar';
+      barEl.style.left=lp+'%';
+      barEl.style.width=wp+'%';
+      barEl.style.background=b.color.f;
+      barEl.style.borderLeft='3px solid '+b.color.b;
+      barEl.style.color=b.color.t;
+      barEl.title=b.label+' ('+siLabel(b.si)+'–'+siLabel(b.ei)+')';
+      const bl=document.createElement('span');
+      bl.className='bl';
+      bl.textContent=b.label;
+      barEl.appendChild(bl);
+      const dx=document.createElement('span');
+      dx.className='dx';
+      dx.textContent='×';
+      dx.addEventListener('click',e=>{e.stopPropagation();bars=bars.filter(x=>x!==b);render();});
+      dx.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();bars=bars.filter(x=>x!==b);render();});
+      barEl.appendChild(dx);
+      const rh=document.createElement('div');
+      rh.className='rh';
+      rh.style.color=b.color.t;
+      barEl.appendChild(rh);
+      attachDrag(barEl,b,body);
+      body.appendChild(barEl);
+    });
+    laneEl.appendChild(body);
+    lc.appendChild(laneEl);
+  });
+}
+
+document.getElementById('addbtn').addEventListener('click',()=>{
+  const lane=document.getElementById('lsel').value;
+  const label=document.getElementById('blbl').value.trim()||'New block';
+  const si=parseInt(document.getElementById('syr').value);
+  const ei=parseInt(document.getElementById('eyr').value);
+  if(ei<si){alert('End must be ≥ start');return;}
+  bars.push({lane,label,si,ei,color:selColor});
+  render();
+});
+document.getElementById('clrbtn').addEventListener('click',()=>{if(confirm('Clear all?')){bars=[];render();}});
+
+buildSelects();
+buildColorPicker();
+buildHeaders();
+
+bars=[
+  {lane:'Ian',label:'High school',si:0,ei:7,color:COLORS[0]},
+  {lane:'Ian',label:'College',si:8,ei:23,color:COLORS[1]},
+];
+render();
+</script>
